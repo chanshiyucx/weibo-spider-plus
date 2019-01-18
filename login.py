@@ -2,7 +2,11 @@ from urllib import parse
 import requests
 import base64
 import time
+import re
+import json
 import logging
+
+login_url = "https://login.sina.com.cn/sso/prelogin.php"
 
 
 class Login:
@@ -30,7 +34,17 @@ class Login:
             "su": su,
             "_": int(time.time()*1000),
         }
-        return params
+        try:
+            response = self.session.get(login_url, params=params)
+            logging.info("返回结果：%s", response.text)
+            prelogin_args = json.loads(
+                re.search(r"\((?P<data>.*)\)", response.text).group("data"))
+        except Exception as excep:
+            prelogin_args = {}
+            logging.error("预登录出错！:%s" % excep)
+
+        logging.debug("预登录返回数据: %s", prelogin_args)
+        return prelogin_args
 
     # linkstart
     def login(self):
