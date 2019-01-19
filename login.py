@@ -17,13 +17,13 @@ class Login:
         self.username = username
         self.password = password
         self.session = requests.Session()
-        logging.debug('登录模块初始化完成！\n')
+        logging.debug('登录模块初始化完成！')
 
     # 加密用户名
     def get_su(self):
         username_qoute = parse.quote_plus(self.username)
         su = base64.b64encode(username_qoute.encode('utf-8')).decode('utf-8')
-        logging.debug('加密用户名 su：%s \n', su)
+        logging.debug('加密用户名 su：%s' % su)
         return su
 
     # 预登录
@@ -40,14 +40,14 @@ class Login:
         try:
             prelogin_url = "https://login.sina.com.cn/sso/prelogin.php"
             response = self.session.get(prelogin_url, params=params)
-            logging.info("返回结果：%s \n", response.text)
+            logging.info("返回结果：%s" % response.text)
             prelogin_args = json.loads(
                 re.search(r"\((?P<data>.*)\)", response.text).group("data"))
         except Exception as excep:
             prelogin_args = {}
-            logging.error("预登录出错！:%s \n" % excep)
+            logging.error("预登录出错！:%s" % excep)
 
-        logging.debug("预登录返回数据: %s \n", prelogin_args)
+        logging.debug("预登录返回数据: %s" % prelogin_args)
         return prelogin_args
 
     # 加密密码
@@ -57,7 +57,7 @@ class Login:
         public_key = rsa.PublicKey(int(pubkey, 16), int("10001", 16))
         password = rsa.encrypt(string, public_key)
         sp = binascii.b2a_hex(password).decode()
-        logging.debug("加密密码 sp: %s \n", sp)
+        logging.debug("加密密码 sp: %s" % sp)
         return sp
 
     # 模拟登录
@@ -92,7 +92,7 @@ class Login:
                     pic = self.session.get(pin_url).content
                 except Exception as excep:
                     pic = b''
-                    logging.error("获取验证码错误:%s \n" % excep)
+                    logging.error("获取验证码错误:%s" % excep)
                 with open("pin.png", "wb") as file_out:
                     file_out.write(pic)
                 self.open_pin()
@@ -103,7 +103,7 @@ class Login:
                 pass
         else:
             pass
-        logging.debug("登录表单数据: %s \n", postdata)
+        logging.debug("登录表单数据: %s" % postdata)
         return postdata
 
     # 打开文件
@@ -119,7 +119,7 @@ class Login:
         elif os_name == 'Linux':
             subprocess.call(['xdg-open', pin_path])
         else:
-            logging.error("你的系统不支持自动预览验证码，请手动打开文件夹:%s \n" % os_name)
+            logging.error("你的系统不支持自动预览验证码，请手动打开文件夹:%s" % os_name)
 
     # linkstart
     def login(self):
@@ -128,7 +128,7 @@ class Login:
         self.su = self.get_su()
         self.prelogin_args = self.get_prelogin_args(self.su)
         if not self.prelogin_args:
-            logging.error('预登录失败！\n')
+            logging.error('预登录失败！')
         else:
             self.sp = self.get_sp(
                 self.prelogin_args["servertime"], self.prelogin_args["nonce"], self.prelogin_args["pubkey"])
@@ -138,7 +138,7 @@ class Login:
             try:
                 login_page = self.session.post(login_url, data=self.postdata)
             except Exception as excep:
-                logging.error("获取登录页错误:%s \n" % excep)
+                logging.error("获取登录页错误:%s" % excep)
                 return False
             login_redirect = login_page.content.decode("GBK")
             pa = r'location\.replace\([\'"](.*?)[\'"]\)'
@@ -146,17 +146,18 @@ class Login:
             try:
                 login_index = self.session.get(redirect_url)
             except Exception as excep:
-                logging.error("获取重定向页失败:%s \n" % excep)
+                logging.error("获取重定向页失败:%s" % excep)
                 return False
             try:
                 result = json.loads(
                     re.search(r"\((?P<data>.*)\)", login_index.text).group('data'))
                 if result['result']:
-                    logging.debug('登录成功!\n')
-                    return True
+                    logging.debug('登录成功！')
+                    return self.session
+                    # return True
                 else:
-                    logging.debug('登录失败!\n')
+                    logging.debug('登录失败！')
                     return False
             except:
-                logging.debug('登录失败!\n')
+                logging.debug('登录失败！')
                 return False
